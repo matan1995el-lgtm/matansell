@@ -5,90 +5,58 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>מערכת שעות</title>
 
-  <!-- SheetJS (XLSX) -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.19.3/dist/xlsx.full.min.js"></script>
-  <!-- jsPDF + AutoTable -->
-  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+  <!-- ספריות נטענות מקומית -->
+  <script src="/xlsx.full.min.js"></script>
+  <script src="/jspdf.umd.min.js"></script>
+  <script src="/jspdf.plugin.autotable.min.js"></script>
 
   <style>
+    /* עיצוב מלא */
     :root {
-      --bg: #f9fafb; --panel: #ffffff; --panel-2: #f3f4f6; --panel-3: #eef2f7;
-      --text: #1f2937; --muted: #6b7280;
-      --accent: #3b82f6; --accent-2: #10b981;
-      --green: #22c55e; --yellow: #f59e0b; --red: #ef4444;
-      --weekend: #fff2f2; --border: #d1d5db; --hover: #e0f2fe; --focus: #93c5fd;
-      --status-ok-bg: #dcfce7; --status-warn-bg: #fef9c3; --status-danger-bg: #fee2e2;
-      --font-family: "Assistant","Rubik",Arial,sans-serif;
+      --bg:#f9fafb;--panel:#fff;--panel-2:#f3f4f6;
+      --text:#1f2937;--muted:#6b7280;
+      --accent:#3b82f6;--green:#22c55e;--yellow:#f59e0b;--red:#ef4444;
+      --weekend:#fff2f2;--border:#d1d5db;--hover:#e0f2fe;
+      --font-family:"Assistant","Rubik",Arial,sans-serif;
     }
-    body{background:var(--bg);color:var(--text);font-family:var(--font-family);margin:0;padding:0;}
-    header{padding:16px 24px;border-bottom:1px solid var(--border);background:var(--panel);display:flex;justify-content:flex-end;align-items:center;gap:12px;}
-    .icon-btn{background:var(--panel-2);border:1px solid var(--border);border-radius:999px;padding:8px 12px;cursor:pointer;font-weight:600;}
-    .toolbar{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;padding:16px 24px;background:var(--panel);border-bottom:1px solid var(--border);}
-    .group{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
-    label{font-size:13px;color:var(--muted);}
-    select,input[type="time"],input[type="text"],input[type="file"],input[type="number"],textarea{
-      background:var(--panel);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:14px;outline:none;
-    }
-    select:focus,input:focus,textarea:focus{border-color:var(--focus);box-shadow:0 0 0 4px rgba(147,197,253,.35);}
-    button{border:1px solid var(--border);border-radius:12px;padding:9px 12px;cursor:pointer;font-weight:600;}
-    .primary{background:var(--accent);color:#fff;border:none;} .success{background:var(--green);color:#fff;border:none;}
-    .warn{background:var(--yellow);color:#fff;border:none;} .pill{background:var(--panel-2);}
-    main{padding:16px 24px;}
+    body{background:var(--bg);color:var(--text);font-family:var(--font-family);margin:0;}
+    header{padding:16px;border-bottom:1px solid var(--border);background:var(--panel);display:flex;justify-content:flex-end;}
+    .icon-btn{background:var(--panel-2);border:1px solid var(--border);border-radius:999px;padding:8px 12px;cursor:pointer;}
+    .toolbar{display:grid;grid-template-columns:repeat(12,1fr);gap:12px;padding:16px;background:var(--panel);}
+    .group{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;gap:10px;flex-wrap:wrap;}
+    button{border:1px solid var(--border);border-radius:12px;padding:9px 12px;cursor:pointer;}
+    .primary{background:var(--accent);color:#fff;} .success{background:var(--green);color:#fff;} .warn{background:var(--yellow);color:#fff;}
+    main{padding:16px;}
     .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:12px;}
     .stat{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:12px;}
     .stat .label{font-size:12px;color:var(--muted);} .stat .value{font-size:22px;color:var(--accent);font-weight:800;}
-    .alerts{margin:8px 0 12px 0;} .alert{background:var(--panel-2);border:1px dashed var(--border);padding:10px;border-radius:10px;margin-bottom:8px;display:flex;gap:8px;align-items:center;}
-    .alert .dot{width:8px;height:8px;border-radius:999px;background:var(--accent);}
-    .filter-bar{margin:12px 0;display:flex;gap:10px;align-items:center;}
-    table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;}
-    thead th{background:var(--panel-2);padding:10px;position:sticky;top:0;z-index:2;}
-    tbody td{padding:8px 10px;border-bottom:1px solid var(--border);}
-    tbody tr:nth-child(even){background:#f9fafb;}
-    #hoursTable tbody tr:hover{background:var(--hover);}
-    tr.status-ok{background:var(--status-ok-bg);} tr.status-warn{background:var(--status-warn-bg);} tr.status-danger{background:var(--status-danger-bg);}
-    tr.weekend{background:var(--weekend);}
-    .weekly-summary{margin-top:16px;background:var(--panel-2);padding:12px;border-radius:12px;}
-    .weekly-summary h3{margin:0 0 8px 0;}
-    .weekly-summary table{width:100%;border-collapse:collapse;background:var(--panel);}
-    .weekly-summary th,.weekly-summary td{border-bottom:1px solid var(--border);padding:8px;text-align:center;}
-    .settings-overlay{position:fixed;inset:0;background:rgba(31,41,55,.35);display:none;align-items:flex-start;justify-content:center;z-index:100;}
-    .settings-panel{margin-top:40px;width:min(980px,96vw);background:var(--panel);border:1px solid var(--border);border-radius:16px;box-shadow:0 16px 28px rgba(0,0,0,.08);overflow:hidden;}
-    .settings-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:var(--panel-2);}
-    .settings-body{padding:16px 18px;display:grid;grid-template-columns:repeat(2,1fr);gap:14px;}
-    .settings-section{background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;}
-    .settings-section h3{margin:0 0 8px 0;font-size:16px;color:var(--accent);font-weight:800;}
-    .settings-row{display:grid;grid-template-columns:180px 1fr;gap:10px;align-items:center;margin-bottom:10px;}
-    .settings-actions{display:flex;gap:8px;justify-content:flex-end;padding:12px;border-top:1px solid var(--border);background:var(--panel-2);}
-    @media(max-width:980px){.stats{grid-template-columns:repeat(2,1fr)}.toolbar{grid-template-columns:1fr}.settings-body{grid-template-columns:1fr}}
+    .alerts{margin:8px 0;} .alert{background:var(--panel-2);border:1px dashed var(--border);padding:10px;border-radius:10px;margin-bottom:8px;}
+    table{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--border);border-radius:14px;}
+    thead th{background:var(--panel-2);padding:10px;} tbody td{padding:8px;border-bottom:1px solid var(--border);}
+    tbody tr:nth-child(even){background:#f9fafb;} tr.weekend{background:var(--weekend);}
+    tr.status-ok{background:#dcfce7;} tr.status-warn{background:#fef9c3;} tr.status-danger{background:#fee2e2;}
   </style>
 </head>
 <body>
-  <header>
-    <div id="openSettings" class="icon-btn" title="הגדרות">⚙️ הגדרות</div>
-  </header>
+  <header><div id="openSettings" class="icon-btn">⚙️ הגדרות</div></header>
 
   <section class="toolbar">
     <div class="group" style="grid-column: span 4;">
-      <label for="month">חודש</label><select id="month"></select>
-      <label for="year">שנה</label><select id="year"></select>
+      <label>חודש</label><select id="month"></select>
+      <label>שנה</label><select id="year"></select>
       <button id="generate" class="primary">צור טבלה</button>
     </div>
     <div class="group" style="grid-column: span 4;">
-      <label for="fileInput">קובץ Excel של פיל</label>
+      <label>קובץ Excel של פיל</label>
       <input type="file" id="fileInput" accept=".xlsx,.xls"/>
       <button id="importExcel" class="success">ייבוא</button>
     </div>
     <div class="group" style="grid-column: span 4;">
-      <button id="templateFill" class="pill">מלא חודש רגיל</button>
-      <button id="templateCopy" class="pill">העתק מפיל למתן</button>
-      <button id="clearAll" class="pill">ניקוי הכל</button>
+      <button id="templateFill" class="primary">מלא חודש רגיל</button>
+      <button id="templateCopy" class="primary">העתק מפיל למתן</button>
+      <button id="clearAll" class="warn">ניקוי הכל</button>
       <button id="exportExcel" class="success">ייצוא ל־Excel</button>
       <button id="exportPDF" class="warn">ייצוא ל־PDF</button>
-      <button id="exportWeeklyPDF" class="warn">PDF סיכום שבועי</button>
-      <button id="exportWeeklyExcel" class="success">Excel סיכום שבועי</button>
-      <button id="saveLocal" class="pill">שמירה</button>
-      <button id="loadLocal" class="pill">טעינה</button>
     </div>
   </section>
 
@@ -97,495 +65,43 @@
       <div class="stat"><div class="label">סה״כ שעות מתן</div><div id="statMatan" class="value">0:00</div></div>
       <div class="stat"><div class="label">סה״כ שעות פיל</div><div id="statPhil" class="value">0:00</div></div>
       <div class="stat"><div class="label">פער שעות</div><div id="statDelta" class="value">0:00</div></div>
-      <div class="stat"><div class="label">ימי עבודה / חופשה / מחלה / היעדרות / חג</div><div id="statDays" class="value">0 / 0 / 0 / 0 / 0</div></div>
+      <div class="stat"><div class="label">ימי עבודה / חופשה / מחלה / חג</div><div id="statDays" class="value">0 / 0 / 0 / 0</div></div>
     </section>
 
     <section class="alerts" id="alerts"></section>
 
-    <div class="filter-bar">
-      <label for="filterSelect">פילטר מהיר:</label>
-      <select id="filterSelect">
-        <option value="all">הצג הכל</option>
-        <option value="mismatch">רק לא תואמים</option>
-        <option value="vacation">רק חופשות</option>
-        <option value="work">רק ימי עבודה</option>
-      </select>
-    </div>
-
-    <section class="table-wrap">
-      <table id="hoursTable">
-        <thead>
-          <tr>
-            <th>תאריך</th><th>יום</th>
-            <th>כניסה (פיל)</th><th>יציאה (פיל)</th><th>סה״כ (פיל)</th>
-            <th>כניסה (מתן)</th><th>יציאה (מתן)</th><th>סה״כ (מתן)</th>
-            <th>סוג יום</th><th>סטטוס</th><th>הערות</th>
-          </tr>
-        </thead>
-        <tbody id="tableBody"></tbody>
-        <tfoot>
-          <tr><td colspan="11">
-            <div class="footer-actions" style="display:flex; gap:8px; flex-wrap:wrap;">
-              <span class="pill">🟢 תואם | 🟡 שונה | 🔴 שישי־שבת</span>
-              <span class="pill">תבנית חודש רגיל לפי שעותיך</span>
-            </div>
-            <div class="monthly-note" style="display:grid; gap:6px; margin-top:10px;">
-              <label for="monthlyNote">הערה חודשית</label>
-              <textarea id="monthlyNote" rows="2" placeholder="הערות כלליות לחודש"></textarea>
-            </div>
-          </td></tr>
-        </tfoot>
-      </table>
-    </section>
-
-    <section class="weekly-summary" id="weeklySummary">
-      <h3>סיכום שבועי</h3>
-      <table id="weeklySummaryTable">
-        <thead>
-          <tr><th>שבוע</th><th>סה״כ פיל</th><th>סה״כ מתן</th><th>פער</th></tr>
-        </thead>
-        <tbody></tbody>
-      </table>
-    </section>
+    <table id="hoursTable">
+      <thead>
+        <tr>
+          <th>תאריך</th><th>יום</th>
+          <th>כניסה (פיל)</th><th>יציאה (פיל)</th><th>סה״כ (פיל)</th>
+          <th>כניסה (מתן)</th><th>יציאה (מתן)</th><th>סה״כ (מתן)</th>
+          <th>סוג יום</th><th>סטטוס</th><th>הערות</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
   </main>
 
-  <div id="settingsOverlay" class="settings-overlay" aria-hidden="true">
-    <div class="settings-panel" role="dialog" aria-modal="true">
-      <div class="settings-header">
-        <h2 style="margin:0; font-size:18px;">הגדרות מערכת</h2>
-        <div style="display:flex; gap:8px;">
-          <button id="resetSettings" class="warn">איפוס לברירת מחדל</button>
-          <button id="closeSettings" class="pill">סגור</button>
-        </div>
-      </div>
-      <div class="settings-body">
-        <div class="settings-section">
-          <h3>עיצוב</h3>
-          <div class="settings-row"><label>פלטה</label><select id="optPalette"><option value="blue">כחול</option><option value="purple">סגול-ורוד</option><option value="teal">ירקרק-כחול</option><option value="classic">קלסי</option></select></div>
-          <div class="settings-row"><label>פונט</label><select id="optFont"><option value="Assistant">Assistant</option><option value="Rubik">Rubik</option><option value="Alef">Alef</option><option value="Arimo">Arimo</option></select></div>
-          <div class="settings-row"><label>Hover</label><input type="color" id="optHover" value="#e0f2fe"/></div>
-          <div class="settings-row"><label>Focus</label><input type="color" id="optFocus" value="#93c5fd"/></div>
-          <div class="settings-row"><label>צבע תואם</label><input type="color" id="optStatusOk" value="#22c55e"/></div>
-          <div class="settings-row"><label>צבע שונה</label><input type="color" id="optStatusWarn" value="#f59e0b"/></div>
-          <div class="settings-row"><label>צבע שישי־שבת</label><input type="color" id="optStatusDanger" value="#ef4444"/></div>
-        </div>
-        <div class="settings-section">
-          <h3>לוגיקה</h3>
-          <div class="settings-row"><label>טולרנס (דקות)</label><input type="number" id="optTolerance" min="0" max="30" value="0"/></div>
-          <div class="settings-row"><label>סופ״ש</label><select id="optWeekend"><option value="fri-sat">שישי-שבת</option><option value="sat-sun">שבת-ראשון</option><option value="sun">ראשון בלבד</option><option value="sat">שבת בלבד</option></select></div>
-          <div class="settings-row"><label>סוגי יום</label><input type="text" id="optDayTypes" value="רגיל,חופשה,מחלה,חג,היעדרות,שעות נוספות,אחר"/></div>
-          <div class="settings-row"><label>שעות נוספות</label><select id="optOvertimeMode"><option value="tag">תג “שעות נוספות”</option><option value="after-8">מעל 8ש׳ ביום</option><option value="none">לא לצבור</option></select></div>
-        </div>
-        <div class="settings-section">
-          <h3>PDF וטבלה</h3>
-          <div class="settings-row"><label>רוחבי עמודות PDF</label><input type="text" id="optPdfWidths" value="120,50,90,90,80"/></div>
-          <div class="settings-row"><label>גודל גופן PDF</label><input type="number" id="optPdfFont" value="9" min="8" max="14"/></div>
-          <div class="settings-row"><label>PDF עמוד</label><select id="optPdfOrientation"><option value="landscape">רוחב</option><option value="portrait">גובה</option></select></div>
-          <div class="settings-row"><label>מינימלי</label><select id="optPdfMinimal"><option value="true">כן</option><option value="false">לא</option></select></div>
-        </div>
-        <div class="settings-section">
-          <h3>שפה ותאריכים</h3>
-          <div class="settings-row"><label>שמות ימים</label><select id="optDayNames"><option value="he-short">עברית קצר</option><option value="he-long">עברית מלא</option><option value="en-short">אנגלית קצר</option><option value="en-long">אנגלית מלא</option></select></div>
-          <div class="settings-row"><label>פורמט תאריך</label><select id="optDateFormat"><option value="YYYY-MM-DD">YYYY-MM-DD</option><option value="DD/MM/YYYY">DD/MM/YYYY</option><option value="DD-MM-YYYY">DD-MM-YYYY</option></select></div>
-        </div>
-      </div>
-      <div class="settings-actions">
-        <button id="saveSettings" class="primary">שמירה</button>
-      </div>
-    </div>
-  </div>
-
   <script>
-    // Utils
+    // בדיקה שהספריות נטענו
+    console.log("XLSX loaded?", typeof XLSX);
+    console.log("jsPDF loaded?", typeof window.jspdf);
+
     const pad2 = n => n<10?"0"+n:n;
-    const minutesToHHMM = (m) => { const s=m<0?"-":""; m=Math.abs(m); const h=Math.floor(m/60),min=m%60; return s+h+":"+pad2(min); };
-    const parseTimeToMinutes = (val) => { if(!val) return 0; const [h,m] = String(val).split(":").map(Number); return (h||0)*60+(m||0); };
-    const nowTimestamp = () => { const d=new Date(); return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`; };
+    const minutesToHHMM = m => {const h=Math.floor(m/60),min=m%60;return h+":"+pad2(min);};
+    const parseTime = v => {if(!v)return 0;const [h,m]=v.split(":").map(Number);return h*60+m;};
 
-    // Storage keys
-    const STORAGE_KEY = "hoursState-full";
-    const SETTINGS_KEY = "hoursSettings-full";
+    let state={year:new Date().getFullYear(),month:new Date().getMonth(),rows:[]};
 
-    // Default settings
-    const defaultSettings = {
-      palette:"blue", font:"Assistant",
-      colors:{ statusOk:"#22c55e", statusWarn:"#f59e0b", statusDanger:"#ef4444", hover:"#e0f2fe", focus:"#93c5fd" },
-      logic:{ toleranceMinutes:0, weekend:"fri-sat", dayTypes:["רגיל","חופשה","מחלה","חג","היעדרות","שעות נוספות","אחר"], overtimeMode:"tag" },
-      pdf:{ widths:[120,50,90,90,80], fontSize:9, orientation:"landscape", minimal:true },
-      i18n:{ dayNames:"he-short", dateFormat:"YYYY-MM-DD" }
-    };
-    const deepMerge = (t,s)=>{for(const k in s){if(s[k]&&typeof s[k]==="object"&&!Array.isArray(s[k])){if(!t[k])t[k]={};deepMerge(t[k],s[k]);}else{t[k]=s[k];}}return t;};
-
-    // Settings
-    let settings = loadSettings(); applyPalette();
-    function loadSettings(){try{const raw=localStorage.getItem(SETTINGS_KEY); if(!raw) return JSON.parse(JSON.stringify(defaultSettings)); return deepMerge(JSON.parse(JSON.stringify(defaultSettings)), JSON.parse(raw)); }catch(e){return JSON.parse(JSON.stringify(defaultSettings));}}
-    function saveSettings(){ localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings)); applyPalette(); addAlert("ההגדרות נשמרו."); repaintAllStatuses(); }
-    function resetSettings(){ settings=JSON.parse(JSON.stringify(defaultSettings)); writeSettingsToUI(); saveSettings(); }
-    function applyPalette(){
-      document.documentElement.style.setProperty('--font-family', `"${settings.font}", "Rubik", Arial, sans-serif`);
-      document.documentElement.style.setProperty('--hover', settings.colors.hover);
-      document.documentElement.style.setProperty('--focus', settings.colors.focus);
-      let accent="#3b82f6",accent2="#10b981"; if(settings.palette==="purple"){accent="#9b5cff";accent2="#ff6bd6";} else if(settings.palette==="teal"){accent="#00c2b2";accent2="#89f0e0";}
-      document.documentElement.style.setProperty('--accent',accent); document.documentElement.style.setProperty('--accent-2',accent2);
-      document.documentElement.style.setProperty('--status-ok-bg', "#dcfce7"); document.documentElement.style.setProperty('--status-warn-bg', "#fef9c3"); document.documentElement.style.setProperty('--status-danger-bg', "#fee2e2");
-    }
-
-    // Weekend & i18n
-    function weekendSet(){switch(settings.logic.weekend){case"fri-sat":return new Set([5,6]);case"sat-sun":return new Set([6,0]);case"sun":return new Set([0]);case"sat":return new Set([6]);default:return new Set([5,6]);}}
-    function isWeekend(dateObj){return weekendSet().has(dateObj.getDay());}
-    function dayNameBySetting(dateObj){const d=dateObj.getDay();const map={"he-short":["א׳","ב׳","ג׳","ד׳","ה׳","ו׳","ש׳"],"he-long":["ראשון","שני","שלישי","רביעי","חמישי","שישי","שבת"],"en-short":["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],"en-long":["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"]};return map[settings.i18n.dayNames][d];}
-    function formatDate(y,m,d){const fmt=settings.i18n.dateFormat; if(fmt==="DD/MM/YYYY")return `${pad2(d)}/${pad2(m+1)}/${y}`; if(fmt==="DD-MM-YYYY")return `${pad2(d)}-${pad2(m+1)}-${y}`; return `${y}-${pad2(m+1)}-${pad2(d)}`;}
-    function dateKey(y,m,d){return `${y}-${pad2(m+1)}-${pad2(d)}`;}
-
-    // State
-    let state = { year:new Date().getFullYear(), month:new Date().getMonth(), rows:[], monthlyNote:"", savedAt:nowTimestamp() };
-
-    // Alerts
-    function addAlert(msg){const wrap=document.getElementById("alerts"); const el=document.createElement("div"); el.className="alert"; el.innerHTML=`<span class="dot"></span><span>${msg}</span>`; wrap.appendChild(el); }
-    function clearAlerts(){document.getElementById("alerts").innerHTML="";}
-
-    // Build month table
-    function daysInMonth(year,monthIndex){return new Date(year,monthIndex+1,0).getDate();}
-    function buildMonthTable(year,monthIndex){
-      clearAlerts(); state.rows=[]; const tbody=document.getElementById("tableBody"); tbody.innerHTML="";
-      const nDays=daysInMonth(year,monthIndex);
-      for(let d=1;d<=nDays;d++){
-        const dt=new Date(year,monthIndex,d); const key=dateKey(year,monthIndex,d); const weekend=isWeekend(dt);
-        const tr=document.createElement("tr"); tr.dataset.key=key; if(weekend) tr.classList.add("weekend");
-        tr.innerHTML=`
-          <td>${formatDate(year,monthIndex,d)}</td>
-          <td>${dayNameBySetting(dt)}</td>
-          <td><input type="time" class="phil-in"/></td>
-          <td><input type="time" class="phil-out"/></td>
-          <td class="phil-total">0:00</td>
-          <td><input type="time" class="matan-in"/></td>
-          <td><input type="time" class="matan-out"/></td>
-          <td class="matan-total">0:00</td>
-          <td><select class="day-type"></select></td>
-          <td class="status">—</td>
-          <td><input type="text" class="note" placeholder="הערה"/></td>`;
-        tbody.appendChild(tr);
-        state.rows.push({dateKey:key, weekend, matan:{in:"",out:"",total:0,type:"רגיל",note:""}, phil:{in:"",out:"",total:0}, status:"—"});
-      }
-      rebuildDayTypesSelector(); hookRowEvents(); updateStatsAndSummaries(); addAlert("נוצרה טבלה לחודש הנבחר.");
-    }
-    function rebuildDayTypesSelector(){
-      document.querySelectorAll(".day-type").forEach(sel=>{
-        sel.innerHTML=""; settings.logic.dayTypes.forEach(t=>{const opt=document.createElement("option"); opt.value=t; opt.textContent=t; sel.appendChild(opt);});
-        const tr=sel.closest("tr"); const row=getRow(tr.dataset.key); sel.value=row?.matan?.type||settings.logic.dayTypes[0];
-      });
-    }
-    function hookRowEvents(){
-      document.querySelectorAll("#tableBody tr").forEach(tr=>{
-        const key=tr.dataset.key; const mi=tr.querySelector(".matan-in"), mo=tr.querySelector(".matan-out"), pi=tr.querySelector(".phil-in"), po=tr.querySelector(".phil-out"), typeSel=tr.querySelector(".day-type"), note=tr.querySelector(".note");
-        mi.addEventListener("input",e=>{const r=getRow(key); r.matan.in=e.target.value; validateRowTimes(tr,r,"matan"); recalcRow(tr,r); saveLocalSilently();});
-        mo.addEventListener("input",e=>{const r=getRow(key); r.matan.out=e.target.value; validateRowTimes(tr,r,"matan"); recalcRow(tr,r); saveLocalSilently();});
-        pi.addEventListener("input",e=>{const r=getRow(key); r.phil.in=e.target.value; validateRowTimes(tr,r,"phil"); recalcRow(tr,r); saveLocalSilently();});
-        po.addEventListener("input",e=>{const r=getRow(key); r.phil.out=e.target.value; validateRowTimes(tr,r,"phil"); recalcRow(tr,r); saveLocalSilently();});
-        typeSel.addEventListener("change",e=>{const r=getRow(key); r.matan.type=e.target.value; recalcRow(tr,r); saveLocalSilently();});
-        note.addEventListener("input",e=>{const r=getRow(key); r.matan.note=e.target.value; saveLocalSilently();});
-      });
-      document.getElementById("monthlyNote").addEventListener("input", e=>{state.monthlyNote=e.target.value; saveLocalSilently();});
-    }
-    function getRow(key){return state.rows.find(r=>r.dateKey===key);}
-
-    // Validation
-    function validateRowTimes(tr,row,who){
-      const inVal=who==="matan"?row.matan.in:row.phil.in, outVal=who==="matan"?row.matan.out:row.phil.out;
-      if(inVal&&outVal){const i=parseTimeToMinutes(inVal), o=parseTimeToMinutes(outVal); if(o<i){addAlert(`אזהרה: (${who==="matan"?"מתן":"פיל"}) יציאה לפני כניסה בתאריך ${row.dateKey}.`);}}
-    }
-
-    // Calc + status
-    function recalcRow(tr,row){
-      row.matan.total=Math.max(0,parseTimeToMinutes(row.matan.out)-parseTimeToMinutes(row.matan.in)); tr.querySelector(".matan-total").textContent=minutesToHHMM(row.matan.total);
-      row.phil.total=Math.max(0,parseTimeToMinutes(row.phil.out)-parseTimeToMinutes(row.phil.in)); tr.querySelector(".phil-total").textContent=minutesToHHMM(row.phil.total);
-      const statusCell=tr.querySelector(".status"); tr.classList.remove("status-ok","status-warn","status-danger");
-      const tol=settings.logic.toleranceMinutes||0, totalMatch=Math.abs(row.matan.total-row.phil.total)<=tol, inMatch=row.matan.in===row.phil.in, outMatch=row.matan.out===row.phil.out;
-      if(row.weekend){row.status="שישי־שבת"; tr.classList.add("status-danger"); statusCell.textContent="🔴 שישי־שבת";}
-      else if(row.matan.total===0&&row.phil.total===0){row.status="—"; statusCell.textContent="—";}
-      else if(totalMatch&&inMatch&&outMatch){row.status="תואם"; tr.classList.add("status-ok"); statusCell.textContent="🟢 תואם";}
-      else {row.status="שונה"; tr.classList.add("status-warn"); statusCell.textContent="🟡 שונה";}
-      updateStatsAndSummaries();
-    }
-    function repaintAllStatuses(){document.querySelectorAll("#tableBody tr").forEach(tr=>{const r=getRow(tr.dataset.key); if(!r) return; tr.classList.remove("status-ok","status-warn","status-danger"); if(r.status==="תואם")tr.classList.add("status-ok"); else if(r.status==="שונה")tr.classList.add("status-warn"); else if(r.status==="שישי־שבת")tr.classList.add("status-danger");});}
-
-    // Stats + alerts + weekly summary
-    function updateStatsAndSummaries(){
-      const totalM=state.rows.reduce((a,r)=>a+r.matan.total,0), totalP=state.rows.reduce((a,r)=>a+r.phil.total,0), delta=totalM-totalP;
-      const workDays=state.rows.filter(r=>!r.weekend&&r.matan.total>0&&r.matan.type==="רגיל").length, vacationDays=state.rows.filter(r=>r.matan.type==="חופשה").length, sickDays=state.rows.filter(r=>r.matan.type==="מחלה").length, absenceDays=state.rows.filter(r=>r.matan.type==="היעדרות").length, holidayDays=state.rows.filter(r=>r.matan.type==="חג").length;
-      let overtime=0; if(settings.logic.overtimeMode==="tag"){overtime=state.rows.reduce((a,r)=>a+(r.matan.type==="שעות נוספות"?r.matan.total:0),0);} else if(settings.logic.overtimeMode==="after-8"){overtime=state.rows.reduce((a,r)=>a+Math.max(0,r.matan.total-480),0);}
-      document.getElementById("statMatan").textContent=minutesToHHMM(totalM);
-      document.getElementById("statPhil").textContent=minutesToHHMM(totalP);
-      document.getElementById("statDelta").textContent=minutesToHHMM(delta);
-      document.getElementById("statDays").textContent=`${workDays} / ${vacationDays} / ${sickDays} / ${absenceDays} / ${holidayDays}`;
-      const mismatches=state.rows.filter(r=>r.status==="שונה").length, missing=state.rows.filter(r=>!r.weekend&&r.matan.total===0&&(r.phil.total>0||r.phil.in||r.phil.out)).length, overtimeDays=state.rows.filter(r=>(settings.logic.overtimeMode==="tag"&&r.matan.type==="שעות נוספות"&&r.matan.total>0)||(settings.logic.overtimeMode==="after-8"&&r.matan.total>480)).length;
-      const alerts=[]; if(mismatches>0)alerts.push(`יש ${mismatches} שורות לא תואמות.`); if(missing>0)alerts.push(`יש ${missing} ימים חסרי דיווח מתן (אך יש דיווח פיל).`); if(delta!==0)alerts.push(`פער כולל: ${minutesToHHMM(delta)}.`); if(overtime>0)alerts.push(`שעות נוספות: ${minutesToHHMM(overtime)} (${overtimeDays} ימים).`);
-      const wrap=document.getElementById("alerts"); wrap.innerHTML=""; alerts.forEach(a=>addAlert(a));
-      updateWeeklySummary();
-    }
-    function updateWeeklySummary(){
-      const tbody=document.querySelector("#weeklySummaryTable tbody"); tbody.innerHTML="";
-      const weeks=collectWeeks(); Object.keys(weeks).forEach(w=>{const p=weeks[w].phil,m=weeks[w].matan; const tr=document.createElement("tr"); tr.innerHTML=`<td>${w}</td><td>${minutesToHHMM(p)}</td><td>${minutesToHHMM(m)}</td><td>${minutesToHHMM(m-p)}</td>`; tbody.appendChild(tr);});
-    }
-    function collectWeeks(){const weeks={}; state.rows.forEach(r=>{const d=new Date(r.dateKey); const w=Math.ceil(d.getDate()/7); if(!weeks[w])weeks[w]={phil:0,matan:0}; weeks[w].phil+=r.phil.total; weeks[w].matan+=r.matan.total;}); return weeks;}
-
-    // Quick filter
-    document.getElementById("filterSelect").addEventListener("change",()=>{
-      const val=document.getElementById("filterSelect").value;
-      document.querySelectorAll("#tableBody tr").forEach(tr=>{
-        const row=getRow(tr.dataset.key); if(!row) return; tr.style.display="";
-        if(val==="mismatch"&&row.status!=="שונה") tr.style.display="none";
-        if(val==="vacation"&&row.matan.type!=="חופשה") tr.style.display="none";
-        if(val==="work"&&row.matan.type!=="רגיל") tr.style.display="none";
-      });
-    });
-
-    // Templates (your hours)
-    document.getElementById("templateFill").addEventListener("click",()=>{
-      document.querySelectorAll("#tableBody tr").forEach(tr=>{
-        const dt=new Date(tr.dataset.key); const row=getRow(tr.dataset.key); if(!row) return; if(isWeekend(dt)) return;
-        if(dt.getDay()===0){tr.querySelector(".matan-in").value="12:45"; tr.querySelector(".matan-out").value="16:30"; row.matan.in="12:45"; row.matan.out="16:30";}
-        else if(dt.getDay()>=1&&dt.getDay()<=4){tr.querySelector(".matan-in").value="13:30"; tr.querySelector(".matan-out").value="16:30"; row.matan.in="13:30"; row.matan.out="16:30";}
-        recalcRow(tr,row);
-      });
-      addAlert("תבנית חודש רגיל מולאה לפי שעותיך."); saveLocalSilently();
-    });
-    document.getElementById("templateCopy").addEventListener("click",()=>{
-      document.querySelectorAll("#tableBody tr").forEach(tr=>{
-        const row=getRow(tr.dataset.key); if(!row) return; const pIn=tr.querySelector(".phil-in").value, pOut=tr.querySelector(".phil-out").value;
-        if(pIn&&pOut){tr.querySelector(".matan-in").value=pIn; tr.querySelector(".matan-out").value=pOut; row.matan.in=pIn; row.matan.out=pOut; recalcRow(tr,row);}
-      });
-      addAlert("הועתקו שעות מפיל למתן עבור ימים עם נתונים."); saveLocalSilently();
-    });
-
-    // Clear
-    document.getElementById("clearAll").addEventListener("click",()=>{
-      document.querySelectorAll("#tableBody tr").forEach(tr=>{
-        ["phil-in","phil-out","matan-in","matan-out","note"].forEach(cls=>{const el=tr.querySelector("."+cls); if(el) el.value="";});
-        tr.querySelector(".matan-total").textContent="0:00"; tr.querySelector(".phil-total").textContent="0:00";
-        tr.querySelector(".status").textContent="—"; tr.classList.remove("status-ok","status-warn","status-danger");
-        const r=getRow(tr.dataset.key); r.matan={in:"",out:"",total:0,type:r.matan.type,note:r.matan.note}; r.phil={in:"",out:"",total:0}; r.status="—";
-      });
-      updateStatsAndSummaries(); addAlert("הטבלה נוקתה."); saveLocalSilently();
-    });
-
-    // Excel import (mapped to your fields) + detailed error logs + XLSX check
-    function isXlsxLoaded(){ return typeof XLSX !== "undefined" && XLSX && typeof XLSX.read === "function"; }
-    function guardXlsx(){
-      const btn = document.getElementById("importExcel");
-      if(!isXlsxLoaded()){
-        console.error("XLSX לא נטען. ודא שהסקריפט מה-CDN זמין ושאתה מריץ דרך http(s) ולא file://");
-        addAlert("ספריית XLSX לא נטענה. נסה לרענן או לפתוח דרך שרת מקומי.");
-        btn.disabled = true;
-        btn.title = "XLSX לא נטען";
-      } else {
-        btn.disabled = false;
-        btn.title = "";
-      }
-      console.log("XLSX loaded?", typeof XLSX);
-    }
-
-    document.getElementById("importExcel").addEventListener("click", async ()=>{
-      guardXlsx();
-      if(!isXlsxLoaded()){ return; }
-
-      const file=document.getElementById("fileInput").files[0];
-      if(!file){addAlert("בחר קובץ Excel קודם.");return;}
-      try{
-        const data=await file.arrayBuffer();
-        const wb=XLSX.read(data,{type:"array"});
-        const sheetName=wb.SheetNames[0];
-        const sheet=wb.Sheets[sheetName];
-        const rows=XLSX.utils.sheet_to_json(sheet,{defval:""}); // read by headers
-
-        console.log("Sheet name:", sheetName);
-        console.log("Parsed rows (first 5):", rows.slice(0,5));
-
-        let injected=0;
-        rows.forEach((r, idx)=>{
-          try {
-            const dateVal = r["תאריך"];
-            if(!dateVal){console.warn("Row", idx, "missing תאריך"); return;}
-            const d = new Date(dateVal); if(isNaN(d)){console.warn("Row", idx, "invalid date:", dateVal); return;}
-            const key = dateKey(d.getFullYear(), d.getMonth(), d.getDate());
-            const row = getRow(key); const tr = document.querySelector(`tr[data-key="${key}"]`);
-            if(!row||!tr){console.warn("Row", idx, "date not in current month:", key); return;}
-
-            const inVal = normalizeTimeString(r["כניסה"]); const outVal = normalizeTimeString(r["יציאה"]);
-            if(inVal){tr.querySelector(".phil-in").value=inVal; row.phil.in=inVal;}
-            if(outVal){tr.querySelector(".phil-out").value=outVal; row.phil.out=outVal;}
-
-            const totalVal = normalizeTotalString(r["שעות לחישוב"]);
-            if(totalVal && (!inVal || !outVal)){
-              const mins = parseTotalToMinutes(totalVal);
-              row.phil.total = mins; tr.querySelector(".phil-total").textContent = minutesToHHMM(mins);
-            }
-
-            const eventVal = String(r["אירוע"]||"").trim();
-            if(eventVal){const sel=tr.querySelector(".day-type"); if(sel){ sel.value=eventVal; row.matan.type=eventVal; }}
-
-            const delayVal = String(r["איחור"]||"").trim();
-            if(delayVal){tr.querySelector(".note").value = "איחור: " + delayVal; row.matan.note = "איחור: " + delayVal;}
-
-            recalcRow(tr,row); injected++;
-          } catch(innerErr) {
-            console.error("Import row error at index", idx, innerErr);
-          }
-        });
-        addAlert(`ייבוא הסתיים. זוהו ${injected} שורות מהקובץ.`);
-        saveLocalSilently();
-      }catch(e){
-        console.error("שגיאת ייבוא:", e);
-        addAlert("שגיאה בייבוא: " + (e.message || e.toString()));
-      }
-    });
-
-    function normalizeTimeString(val){
-      if(!val)return"";let s=String(val).trim();
-      if(/^\d{1,2}\.\d{2}$/.test(s)) s=s.replace(".",":");
-      if(/^\d{3,4}$/.test(s)){s=(s.length===3)?("0"+s):s; s=s.slice(0,2)+":"+s.slice(2);}
-      if(/^\d{1,2}:\d{2}(:\d{2})?$/.test(s)) return s;
-      return "";
-    }
-    function normalizeTotalString(val){
-      if(!val)return"";let s=String(val).trim();
-      if(/^\d{1,2}\.\d{2}$/.test(s)) s=s.replace(".",":");
-      if(/^\d{1,2}:\d{2}$/.test(s)) return s;
-      const m=s.match(/(\d+)\s*ש(עות)?\s*(\d+)\s*ד(קות)?/);
-      if(m) return `${pad2(+m[1])}:${pad2(+m[3])}`;
-      return "";
-    }
-    function parseTotalToMinutes(val){const [h,m]=String(val).split(":").map(Number); return (h||0)*60+(m||0);}
-
-    // Export Excel
-    document.getElementById("exportExcel").addEventListener("click",()=>{
-      const aoa=[["תאריך","יום","כניסה (פיל)","יציאה (פיל)","סה״כ (פיל)","כניסה (מתן)","יציאה (מתן)","סה״כ (מתן)","סוג יום","סטטוס","הערות","הערה חודשית","נשמר ב"]];
-      state.rows.forEach(r=>{
-        const d=new Date(r.dateKey);
-        aoa.push([formatDate(d.getFullYear(),d.getMonth(),d.getDate()), dayNameBySetting(d), r.phil.in, r.phil.out, minutesToHHMM(r.phil.total), r.matan.in, r.matan.out, minutesToHHMM(r.matan.total), r.matan.type, r.status, r.matan.note||"", "", nowTimestamp()]);
-      });
-      aoa.push(["","","","","","","","","","", state.monthlyNote||"", "", nowTimestamp()]);
-      if(typeof XLSX === "undefined"){ addAlert("XLSX לא נטען — לא ניתן לייצא."); return; }
-      const ws=XLSX.utils.aoa_to_sheet(aoa); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"שעות"); XLSX.writeFile(wb,`שעות_${state.year}_${pad2(state.month+1)}.xlsx`);
-    });
-
-    // Export PDF (table)
-    document.getElementById("exportPDF").addEventListener("click",()=>{
-      const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"pt",format:"a4",orientation:settings.pdf.orientation});
-      doc.setFont("helvetica","bold"); doc.setFontSize(11); doc.text(`שעות — ${state.year}/${pad2(state.month+1)}`,30,26);
-      doc.setFont("helvetica","normal"); doc.setFontSize(9); doc.text(`מתן: ${document.getElementById("statMatan").textContent} | פיל: ${document.getElementById("statPhil").textContent} | פער: ${document.getElementById("statDelta").textContent}`,30,40);
-      const minimal=settings.pdf.minimal; let head,body;
-      if(minimal){
-        head=[["תאריך","יום","סה״כ (פיל)","סה״כ (מתן)","סטטוס"]];
-        body=state.rows.map(r=>{const d=new Date(r.dateKey); return [formatDate(d.getFullYear(),d.getMonth(),d.getDate()), dayNameBySetting(d), minutesToHHMM(r.phil.total), minutesToHHMM(r.matan.total), r.status];});
-      }else{
-        head=[["תאריך","יום","כניסה (פיל)","יציאה (פיל)","סה״כ (פיל)","כניסה (מתן)","יציאה (מתן)","סה״כ (מתן)","סוג יום","סטטוס","הערות"]];
-        body=state.rows.map(r=>{const d=new Date(r.dateKey); return [formatDate(d.getFullYear(),d.getMonth(),d.getDate()), dayNameBySetting(d), r.phil.in||"", r.phil.out||"", minutesToHHMM(r.phil.total), r.matan.in||"", r.matan.out||"", minutesToHHMM(r.matan.total), r.matan.type, r.status, r.matan.note||""];});
-      }
-      const startY=56; doc.autoTable({head,body,startY,margin:{left:30,right:30},styles:{font:"helvetica",fontSize:settings.pdf.fontSize,cellPadding:3,halign:"right"},headStyles:{fillColor:[243,244,246],textColor:[31,41,55],fontStyle:"bold"},
-        didParseCell:(data)=>{if(data.section==='body'){const statusIndex=minimal?4:9; const status=data.row.raw[statusIndex]; const dateStr=data.row.raw[0];
-          // parse date based on selected format
-          let dkey;
-          if(settings.i18n.dateFormat==="DD/MM/YYYY"){const m=dateStr.match(/(\d{2})\/(\d{2})\/(\d{4})/); dkey=m?new Date(+m[3],+m[2]-1,+m[1]):new Date(dateStr);}
-          else if(settings.i18n.dateFormat==="DD-MM-YYYY"){const m=dateStr.match(/(\d{2})-(\d{2})-(\d{4})/); dkey=m?new Date(+m[3],+m[2]-1,+m[1]):new Date(dateStr);}
-          else {dkey=new Date(dateStr);}
-          const weekend=dkey&&!isNaN(dkey)?isWeekend(dkey):false;
-          if(weekend){data.cell.styles.fillColor=[255,242,242];} else if(/תואם/.test(status)){data.cell.styles.fillColor=[220,252,231];} else if(/שונה/.test(status)){data.cell.styles.fillColor=[254,249,195];} else if(/שישי/.test(status)){data.cell.styles.fillColor=[254,226,226];}
-        }}
-      });
-      const y=doc.lastAutoTable?doc.lastAutoTable.finalY+10:startY+10; if(state.monthlyNote){doc.setFont("helvetica","bold"); doc.setFontSize(10); doc.text("הערה חודשית:",30,y); doc.setFont("helvetica","normal"); doc.setFontSize(9); const width=settings.pdf.orientation==="landscape"?740:520; const lines=doc.splitTextToSize(state.monthlyNote,width); doc.text(lines,30,y+12);}
-      doc.save(`שעות_${state.year}_${pad2(state.month+1)}.pdf`);
-    });
-
-    // Export weekly summary
-    document.getElementById("exportWeeklyPDF").addEventListener("click",()=>{
-      const {jsPDF}=window.jspdf; const doc=new jsPDF({unit:"pt",format:"a4",orientation:"portrait"});
-      doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.text(`סיכום שבועי — ${state.year}/${pad2(state.month+1)}`,30,30);
-      const head=[["שבוע","סה״כ פיל","סה״כ מתן","פער"]]; const weeks=collectWeeks();
-      const body=Object.keys(weeks).map(w=>{const p=weeks[w].phil,m=weeks[w].matan; return [w, minutesToHHMM(p), minutesToHHMM(m), minutesToHHMM(m-p)];});
-      doc.autoTable({head,body,startY:50,styles:{font:"helvetica",fontSize:10,halign:"center"}});
-      doc.save(`סיכום_שבועי_${state.year}_${pad2(state.month+1)}.pdf`);
-    });
-    document.getElementById("exportWeeklyExcel").addEventListener("click",()=>{
-      if(typeof XLSX === "undefined"){ addAlert("XLSX לא נטען — לא ניתן לייצא."); return; }
-      const weeks=collectWeeks(); const aoa=[["שבוע","סה״כ פיל","סה״כ מתן","פער"]];
-      Object.keys(weeks).forEach(w=>{const p=weeks[w].phil,m=weeks[w].matan; aoa.push([w, minutesToHHMM(p), minutesToHHMM(m), minutesToHHMM(m-p)]);});
-      const ws=XLSX.utils.aoa_to_sheet(aoa); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"סיכום שבועי"); XLSX.writeFile(wb,`סיכום_שבועי_${state.year}_${pad2(state.month+1)}.xlsx`);
-    });
-
-    // Save/load
-    function saveLocalSilently(){try{state.savedAt=nowTimestamp(); localStorage.setItem(STORAGE_KEY, JSON.stringify(state));}catch(e){}}
-    document.getElementById("saveLocal").addEventListener("click",()=>{saveLocalSilently(); addAlert("המידע נשמר בדפדפן.");});
-    document.getElementById("loadLocal").addEventListener("click",()=>{
-      const raw=localStorage.getItem(STORAGE_KEY); if(!raw){addAlert("לא נמצאה שמירה קודמת."); return;}
-      try{state=JSON.parse(raw); rebuildFromState(); addAlert(`המידע נטען (${state.savedAt||"—"}).`);}catch(e){addAlert("טעינה נכשלה.");}
-    });
-    function rebuildFromState(){
-      document.getElementById("month").value=state.month; document.getElementById("year").value=state.year; buildMonthTable(state.year,state.month);
-      state.rows.forEach(r=>{const tr=document.querySelector(`tr[data-key="${r.dateKey}"]`); if(!tr) return;
-        tr.querySelector(".phil-in").value=r.phil.in||""; tr.querySelector(".phil-out").value=r.phil.out||"";
-        tr.querySelector(".matan-in").value=r.matan.in||""; tr.querySelector(".matan-out").value=r.matan.out||"";
-        tr.querySelector(".day-type").value=r.matan.type||settings.logic.dayTypes[0]; tr.querySelector(".note").value=r.matan.note||""; recalcRow(tr,r);
-      });
-      document.getElementById("monthlyNote").value=state.monthlyNote||""; updateStatsAndSummaries();
-    }
-
-    // Settings UI wiring
-    function writeSettingsToUI(){
-      document.getElementById("optPalette").value=settings.palette;
-      document.getElementById("optFont").value=settings.font;
-      document.getElementById("optHover").value=settings.colors.hover;
-      document.getElementById("optFocus").value=settings.colors.focus;
-      document.getElementById("optStatusOk").value=settings.colors.statusOk;
-      document.getElementById("optStatusWarn").value=settings.colors.statusWarn;
-      document.getElementById("optStatusDanger").value=settings.colors.statusDanger;
-      document.getElementById("optTolerance").value=settings.logic.toleranceMinutes;
-      document.getElementById("optWeekend").value=settings.logic.weekend;
-      document.getElementById("optDayTypes").value=settings.logic.dayTypes.join(",");
-      document.getElementById("optOvertimeMode").value=settings.logic.overtimeMode;
-      document.getElementById("optPdfWidths").value=settings.pdf.widths.join(",");
-      document.getElementById("optPdfFont").value=settings.pdf.fontSize;
-      document.getElementById("optPdfOrientation").value=settings.pdf.orientation;
-      document.getElementById("optPdfMinimal").value=String(settings.pdf.minimal);
-      document.getElementById("optDayNames").value=settings.i18n.dayNames;
-      document.getElementById("optDateFormat").value=settings.i18n.dateFormat;
-    }
-    function readSettingsFromUI(){
-      settings.palette=document.getElementById("optPalette").value;
-      settings.font=document.getElementById("optFont").value;
-      settings.colors.hover=document.getElementById("optHover").value;
-      settings.colors.focus=document.getElementById("optFocus").value;
-      settings.colors.statusOk=document.getElementById("optStatusOk").value;
-      settings.colors.statusWarn=document.getElementById("optStatusWarn").value;
-      settings.colors.statusDanger=document.getElementById("optStatusDanger").value;
-      settings.logic.toleranceMinutes=parseInt(document.getElementById("optTolerance").value||"0",10);
-      settings.logic.weekend=document.getElementById("optWeekend").value;
-      settings.logic.dayTypes=document.getElementById("optDayTypes").value.split(",").map(s=>s.trim()).filter(Boolean);
-      settings.logic.overtimeMode=document.getElementById("optOvertimeMode").value;
-      settings.pdf.widths=document.getElementById("optPdfWidths").value.split(",").map(x=>parseInt(x.trim(),10)).filter(n=>!isNaN(n)&&n>0);
-      settings.pdf.fontSize=parseInt(document.getElementById("optPdfFont").value||"9",10);
-      settings.pdf.orientation=document.getElementById("optPdfOrientation").value;
-      settings.pdf.minimal=document.getElementById("optPdfMinimal").value==="true";
-      settings.i18n.dayNames=document.getElementById("optDayNames").value;
-      settings.i18n.dateFormat=document.getElementById("optDateFormat").value;
-    }
-    document.getElementById("openSettings").addEventListener("click",()=>{writeSettingsToUI(); const ov=document.getElementById("settingsOverlay"); ov.style.display="flex"; ov.setAttribute("aria-hidden","false");});
-    document.getElementById("closeSettings").addEventListener("click",()=>{const ov=document.getElementById("settingsOverlay"); ov.style.display="none"; ov.setAttribute("aria-hidden","true");});
-    document.getElementById("saveSettings").addEventListener("click",()=>{readSettingsFromUI(); saveSettings(); document.getElementById("settingsOverlay").style.display="none"; repaintAllStatuses(); rebuildDayTypesSelector();});
-
-    // Init selectors
-    (function initSelectors(){
-      const monthSel=document.getElementById("month"), yearSel=document.getElementById("year"), now=new Date();
-      for(let m=0;m<12;m++){const opt=document.createElement("option"); opt.value=m; opt.textContent=new Date(2000,m,1).toLocaleString("he-IL",{month:"long"}); if(m===state.month)opt.selected=true; monthSel.appendChild(opt);}
-      for(let y=now.getFullYear()-2;y<=now.getFullYear()+2;y++){const opt=document.createElement("option"); opt.value=y; opt.textContent=y; if(y===state.year)opt.selected=true; yearSel.appendChild(opt);}
-    })();
-
-    // Generate month
-    document.getElementById("generate").addEventListener("click",()=>{state.month=parseInt(document.getElementById("month").value,10); state.year=parseInt(document.getElementById("year").value,10); buildMonthTable(state.year,state.month); saveLocalSilently();});
-
-    // Initial guards and build
-    guardXlsx();
-    buildMonthTable(state.year,state.month);
-  </script>
-</body>
-</html>
+    function buildMonthTable(y,m){
+      const tbody=document.getElementById("tableBody");tbody.innerHTML="";
+      const days=new Date(y,m+1,0).getDate();
+      state.rows=[];
+      for(let d=1;d<=days;d++){
+        const date=new Date(y,m,d);
+        const key=`${y}-${pad2(m+1)}-${pad2(d)}`;
+        const tr=document.createElement("tr");
+        tr.dataset.key=key;
+        tr.innerHTML=`<td>${key}</td><td>${date.toLocaleDateString("he-IL",{weekday:"short"})}</td>
+        <td><input type="time" class="phil-in"></td><td><input type="time" class="phil-out"></td><td
