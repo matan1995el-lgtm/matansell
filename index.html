@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>ניהול שעות חודשיות — פיל ומתן</title>
+  <style>
+    :root{
+      --bg:#f5f7fb; --card:#fff; --text:#111; --muted:#6b7280;
+      --border:#e6e9ef; --head:#f3f4f6;
+      --match:#dff7e6; --diff:#fff7d6; --weekend:#fff7ed;
+      --primary:#2563eb;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:Inter, Arial, Helvetica, sans-serif;
+      direction:rtl;
+      padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+    header, footer{background:#0f172a;color:#fff;padding:14px;text-align:center}
+    .controls{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:12px}
+    .controls label{display:flex;align-items:center;gap:6px;background:#111827;color:#fff;padding:6px 8px;border-radius:8px}
+    .controls select, .controls button{padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#fff;color:var(--text);cursor:pointer}
+    .controls button.action{background:var(--primary);color:#fff;border-color:var(--primary);font-weight:700}
+    main{max-width:1200px;margin:14px auto;padding:0 12px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+    .table-wrap{overflow:auto}
+    table{width:100%;border-collapse:collapse;background:var(--card);min-width:900px}
+    th,td{border:1px solid var(--border);padding:10px;text-align:center;font-size:14px;vertical-align:middle}
+    th{background:var(--head);position:sticky;top:0;z-index:2}
+    tbody tr:nth-child(even){background:#fbfdff}
+    tbody tr.weekend{background:var(--weekend)}
+    input[type="time"]{padding:6px;border:1px solid var(--border);border-radius:6px;width:120px;min-width:90px}
+    .status{font-weight:700}
+    #summary{padding:16px;display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .summary-box{background:#fff;border:1px solid var(--border);padding:12px;border-radius:10px}
+    .legend{padding:12px;color:var(--muted);font-size:13px}
+    @media(max-width:1024px){ table{min-width:800px} }
+    @media(max-width:780px){
+      table{min-width:700px}
+      .controls{flex-direction:column;align-items:stretch}
+      .controls label{justify-content:space-between}
+      input[type="time"]{width:100%}
+      #summary{grid-template-columns:1fr}
+      th,td{font-size:13px;padding:8px}
+    }
+  </style>
+
+  <!-- ניסיון לטעון מקומי תחילה (public/), אחר כך CDN גיבוי -->
+  <script src="public/xlsx.full.min.js"></script>
+  <script src="public/jspdf.umd.min.js"></script>
+  <script src="public/jspdf.plugin.autotable.min.js"></script>
+</head>
+<body>
+  <header>
+    <h1>ניהול שעות חודשיות — פיל ומתן</h1>
+  </header>
+
+  <div class="controls" role="toolbar" aria-label="כלי ניהול">
+    <label>חודש:
+      <select id="monthSelect" aria-label="בחר חודש"></select>
+    </label>
+    <label>שנה:
+      <select id="yearSelect" aria-label="בחר שנה"></select>
+    </label>
+    <button class="action" id="btnGenerate">צור טבלה</button>
+    <button id="btnFillMonth">מילוי חודש אוטומטי (רק מתן)</button>
+    <button id="btnExportXLSX">ייצוא Excel</button>
+    <button id="btnExportPDF">ייצוא PDF</button>
+    <button id="btnImportXLSX">ייבוא Excel</button>
+    <input type="file" id="excelFile" accept=".xlsx,.xls" style="display:none" />
+    <button id="btnSave">שמירה</button>
+    <button id="btnLoad">טעינה</button>
+    <button id="btnClear">ניקוי</button>
+  </div>
+
+  <main>
+    <div class="card">
+      <div class="table-wrap" aria-live="polite">
+        <table id="hoursTable" aria-label="טבלת שעות חודשיות">
+          <thead>
+            <tr>
+              <th>שם העובד</th>
+              <th>תאריך</th>
+              <th>יום</th>
+              <th>כניסה</th>
+              <th>יציאה</th>
+              <th>שעות לחישוב</th>
+              <th>אירוע</th>
+              <th>איחור</th>
+              <th>סה״כ — פיל</th>
+              <th>סה״כ — מתן</th>
+              <th>סטטוס</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div id="summary">
+        <div class="summary-box">
+          <h3>סיכום שבועי</h3>
+          <div id="weeklySummary" class="muted"></div>
+        </div>
+        <div class="summary-box">
+          <h3>סטטיסטיקות חודשיות</h3>
+          <div id="monthlyStats" class="muted"></div>
+        </div>
+      </div>
+
+      <div class="legend">• ירוק = תואם • צהוב = שונה • סופ״ש מודגש • פיל מתעדכן רק מייבוא • מתן ניתן למילוי אוטומטי</div>
+    </div>
+  </main>
+
+  <footer>
+    <small class="muted">מיפוי: שם העובד · תאריך · יום · כניסה · יציאה · שעות לחישוב · אירוע · איחור</small>
+  </footer>
+
+  <script>
+  (function ensureLibs(){
+    if(typeof XLSX === "undefined"){
+      const s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js";
+      document.head.appendChild(s);
+    }
+    if(!window.jspdf || !window.jspdf.jsPDF){
+      const s2 = document.createElement("script");
+      s2.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js";
+      document.head.appendChild(s2);
+    }
+    if(!window.jspdf || !window.jspdf.jsPDF || !window.jspdf.jsPDF.prototype.autoTable){
+      const s3 = document.createElement("script");
+      s3.src = "https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js";
+      document.head.appendChild(s3);
+    }
+  })();
+
+  const tableBody = document.querySelector("#hoursTable tbody");
+  const monthSelect = document.getElementById("monthSelect");
+  const yearSelect = document.getElementById("yearSelect");
+  const btnGenerate = document.getElementById("btnGenerate");
+  const btnFillMonth = document.getElementById("btnFillMonth");
+  const btnExportXLSX = document.getElementById("btnExportXLSX");
+  const btnExportPDF = document.getElementById("btnExportPDF");
+  const btnImportXLSX = document.getElementById("btnImportXLSX");
+  const excelFile = document.getElementById("excelFile");
+  const btnSave = document.getElementById("btnSave");
+  const btnLoad = document.getElementById("btnLoad");
+  const btnClear = document.getElementById("btnClear");
+
+  const months = ["ינואר","פברואר","מרץ","אפריל","מאי","יוני","יולי","אוגוסט","ספטמבר","אוקטובר","נובמבר","דצמבר"];
+  months.forEach((m,i)=>{ const o=document.createElement("option"); o.value=i; o.textContent=m; monthSelect.appendChild(o); });
+  const currentYear = new Date().getFullYear();
+  for(let y=currentYear-2; y<=currentYear+2; y++){ const o=document.createElement("option"); o.value=y; o.textContent=y; yearSelect.appendChild(o); }
+
+  function storageKey(){ return `hoursData:${yearSelect.value}-${monthSelect.value}`; }
+  function isWeekend(d){ const day=d.getDay(); return day===5 || day===6; }
+  function parseHeDate(str){
+    if(!str) return new Date("");
+    if(typeof str === "number") return new Date(Math.round((str - 25569) * 86400 * 1000));
+    const s = String(str).trim();
+    const dot = s.match(/^(\d{1,2})\.(\d{1,2})\.(\d{2,4})$/);
+    if(dot) return new Date(parseInt(dot[3],10), parseInt(dot[2],10)-1, parseInt(dot[1],10));
+    const iso = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if(iso) return new Date(parseInt(iso[1],10), parseInt(iso[2],10)-1, parseInt(iso[3],10));
+    const d = new Date(s);
+    return isNaN(d) ? new Date("") : d;
+  }
+
+  function calcHoursFromTimes(start,end){
+    if(!start||!end) return "";
+    const [h1,m1] = start.split(":").map(Number);
+    const [h2,m2] = end.split(":").map(Number);
+    if(Number.isNaN(h1)||Number.isNaN(m1)||Number.isNaN(h2)||Number.isNaN(m2)) return "";
+    let s1 = h1*60 + m1, s2 = h2*60 + m2;
+    if(s2 < s1) s2 += 24*60;
+    const diff = (s2 - s1)/60;
+    return diff >= 0 ? diff : "";
+  }
+
+  function formatDisplayHours(n){
+    if(n === "" || n === null || n === undefined) return "";
+    const totalMinutes = Math.round(n * 60);
+    const hh = Math.floor(totalMinutes / 60);
+    const mm = totalMinutes % 60;
+    return `${String(hh)}:${String(mm).padStart(2,"0")}`;
+  }
+
+  function normalizeTimeValue(val){
+    if(!val && val !== 0) return "";
+    if(typeof val === "number"){
+      const totalMinutes = Math.round(val * 24 * 60);
+      const hh = Math.floor(totalMinutes / 60);
+      const mm = totalMinutes % 60;
+      return `${String(hh).padStart(2,'0')}:${String(mm).padStart(2,'0')}`;
+    }
+    const s = String(val).trim();
+    const m = s.match(/^(\d{1,2})[:.\-](\d{2})$/);
+    if(m) return `${m[1].padStart(2,'0')}:${m[2]}`;
+    return "";
+  }
+
+  /* HEADERS_MAP מותאם למבנה שסיפקת:
+     שם העובד - תאריך - יום - כניסה - יציאה - שעות לחישוב - אירוע - איחור
+  */
+  const HEADERS_MAP = {
+    name: ["שם העובד","name","שם","Employee","Employee Name"],
+    date: ["תאריך","date","Date"],
+    day: ["יום","day","Day"],
+    in: ["כניסה","כניסה - פיל","כניסה פיל","כניסה מתן","כניסה מונה","in","In"],
+    out: ["יציאה","יציאה - פיל","יציאה פיל","יציאה מתן","out","Out"],
+    hoursCalc: ["שעות לחישוב","hours to calculate","hours","שעות"],
+    event: ["אירוע","event","Event"],
+    late: ["איחור","late","Late"]
+  };
+
+  function findHeaderIndex(headersRow, candidates){
+    for(let i=0;i<headersRow.length;i++){
+      const h = String(headersRow[i]||"").trim().toLowerCase();
+      for(const c of candidates) if(c && c.toLowerCase() === h) return i;
+    }
+    return -1;
+  }
+
+  function importExcelFileRows(rows){
+    if(!rows || rows.length === 0) return;
+    const headerRow = rows[0].map(x=>String(x||"").trim());
+    // מיפוי מדוייק לפי הכותרות שסיפקת
+    const idx = {
+      name: findHeaderIndex(headerRow, HEADERS_MAP.name),
+      date: findHeaderIndex(headerRow, HEADERS_MAP.date),
+      day:  findHeaderIndex(headerRow, HEADERS_MAP.day),
+      in:   findHeaderIndex(headerRow, HEADERS_MAP.in),
+      out:  findHeaderIndex(headerRow, HEADERS_MAP.out),
+      hoursCalc: findHeaderIndex(headerRow, HEADERS_MAP.hoursCalc),
+      event: findHeaderIndex(headerRow, HEADERS_MAP.event),
+      late:  findHeaderIndex(headerRow, HEADERS_MAP.late)
+    };
+    const looksLikeHeader = idx.date >= 0 || idx.in >= 0 || idx.hoursCalc >= 0;
+    const dataRows = looksLikeHeader ? rows.slice(1) : rows;
+
+    tableBody.innerHTML = "";
+    dataRows.forEach(r=>{
+      if(!r || r.length === 0) return;
+      const rawName = looksLikeHeader ? r[idx.name] : r[0] || "";
+      const rawDate = looksLikeHeader ? r[idx.date] : r[1] || "";
+      const rawDay  = looksLikeHeader ? r[idx.day]  : r[2] || "";
+      const rawIn   = looksLikeHeader ? r[idx.in]   : r[3] || "";
+      const rawOut  = looksLikeHeader ? r[idx.out]  : r[4] || "";
+      const rawHoursCalc = looksLikeHeader ? r[idx.hoursCalc] : r[5] || "";
+      const rawEvent = looksLikeHeader ? r[idx.event] : r[6] || "";
+      const rawLate  = looksLikeHeader ? r[idx.late]  : r[7] || "";
+
+      // כאשר יש "שעות לחישוב" נסמוך עליה כערך מוחלט (לפיל/מתן) במקום לחשב מזמני כניסה/יציאה
+      const hoursFromCalc = (rawHoursCalc !== undefined && rawHoursCalc !== null && rawHoursCalc !== "") ? parseFloat(String(rawHoursCalc).toString().replace(",",".")).toFixed(4) : "";
+
+      const tr = document.createElement("tr");
+      const dObj = parseHeDate(rawDate);
+      if(isWeekend(dObj)) tr.classList.add("weekend");
+
+      // שדות קלט: פיל יתעדכן רק אם יש נתון בקובץ (in/out או hoursCalc לשם פיל)
+      const inPhilVal = normalizeTimeValue(rawIn);    // אם הקובץ הכיל כניסה של פיל
+      const outPhilVal = normalizeTimeValue(rawOut);
+      // ברירת מחדל: אם יש hoursCalc בקובץ נשתמש בו לציון סה"כ (פיל) — אחרת נשאיר ריק לפיל
+      const totalPhilDisplay = (hoursFromCalc !== "") ? formatDisplayHours(parseFloat(hoursFromCalc)) : "";
+
+      tr.innerHTML = `
+        <td>${rawName || ""}</td>
+        <td>${rawDate || (dObj instanceof Date && !isNaN(dObj) ? dObj.toLocaleDateString("he-IL") : "")}</td>
+        <td>${rawDay || (dObj instanceof Date && !isNaN(dObj) ? dObj.toLocaleDateString("he-IL",{weekday:"long"}) : "")}</td>
+        <td><input type="time" class="in1" value="${inPhilVal}" /></td>
+        <td><input type="time" class="out1" value="${outPhilVal}" /></td>
+        <td><span class="total1">${totalPhilDisplay}</span></td>
+        <td><input type="time" class="in2" value="${normalizeTimeValue('')}" /></td>
+        <td><input type="time" class="out2" value="${normalizeTimeValue('')}" /></td>
+        <td><span class="total2"></span></td>
+        <td><span class="status"></span></td>
+        <td><span class="meta-event">${rawEvent || ""}${rawLate ? " • איחור: " + rawLate : ""}</span></td>
+      `;
+      // הערה: בעמודות טבלה הוספתי שדות נוספים — סדר העמודות בטבלה יכול להשתנות לפי רצונך
+      tableBody.appendChild(tr);
+    });
+
+    // עכשיו: לאחר יצירת שורות, נחפש האם יש עמודת "שעות לחישוב" שהכילה שעות עבור מתן (או פיל)
+    // גישה פשוטה: אם בלשורה הראשונה יש ערך ב-"שעות לחישוב" נניח שזה מקור הסכומים לפיל; אנחנו כבר הצגנו אותו ב-total1
+    attachListeners();
+    recalcAll();
+  }
+
+  excelFile.addEventListener("change", (e)=>{
+    if(typeof XLSX === "undefined"){ alert("XLSX לא נטען — ודא חיבור אינטרנט או קובץ public/xlsx.full.min.js"); e.target.value=""; return; }
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try{
+        const data = new Uint8Array(evt.target.result);
+        const wb = XLSX.read(data, { type: "array" });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { header:1, blankrows:false });
+        importExcelFileRows(rows);
+        alert("ייבוא הושלם ונערכו חישובים מחדש.");
+      }catch(err){
+        alert("שגיאה בייבוא הקובץ — וודא שהקובץ תקין. " + err.message);
+      }
+    };
+    reader.readAsArrayBuffer(file);
+    e.target.value = "";
+  });
+
+  function attachListeners(){
+    tableBody.querySelectorAll("input[type='time']").forEach(inp=>{
+      inp.removeEventListener("change", inp._chg);
+      inp._chg = ()=> calculateRow(inp.closest("tr"));
+      inp.addEventListener("change", inp._chg);
+    });
+  }
+
+  function calculateRow(row){
+    // פיל (in1/out1/total1) מתעדכן רק מייבוא — לא ממילוי אוטומטי
+    const in1 = row.querySelector(".in1").value;
+    const out1 = row.querySelector(".out1").value;
+    // מתן (in2/out2) יכול להיות ממולא אוטומטית או מייבוא
+    const in2 = row.querySelector(".in2").value;
+    const out2 = row.querySelector(".out2").value;
+
+    // חשב עבור מתן מתוך שעות כניסה/יציאה
+    const num2 = calcHoursFromTimes(in2,out2);
+
+    // פיל: בדוק אם total1 כבר מלא (מייבוא "שעות לחישוב"), אחרת נסה לחשב מ-in1/out1
+    let total1Span = row.querySelector(".total1");
+    let total1Val = total1Span.textContent && total1Span.textContent.trim() !== "" ? parseTimeStringToHours(total1Span.textContent) : "";
+    if(total1Val === "" ){
+      const num1calc = calcHoursFromTimes(in1,out1);
+      total1Val = (typeof num1calc === "number") ? num1calc : "";
+      total1Span.textContent = (total1Val === "" ? "" : formatDisplayHours(total1Val));
+    }
+
+    row.querySelector(".total2").textContent = (num2 === "" ? "" : formatDisplayHours(num2));
+
+    // צבעים וחוקים — השוואה מדויקת ללא טולרנס
+    const statusEl = row.querySelector(".status");
+    row.style.backgroundColor = "";
+    if(typeof total1Val === "number" && typeof num2 === "number"){
+      if(total1Val === num2){
+        statusEl.textContent = "תואם";
+        row.style.backgroundColor = "var(--match)";
+      } else {
+        statusEl.textContent = "שונה";
+        row.style.backgroundColor = "var(--diff)";
+      }
+    } else {
+      statusEl.textContent = "";
+    }
+
+    updateSummary();
+  }
+
+  function parseTimeStringToHours(s){
+    if(!s) return "";
+    const m = String(s).trim().match(/^(\d{1,2}):(\d{2})$/);
+    if(m){
+      const hh = parseInt(m[1],10), mm = parseInt(m[2],10);
+      return hh + mm/60;
+    }
+    const n = parseFloat(String(s).replace(",","."));
+    return Number.isFinite(n) ? n : "";
+  }
+
+  function recalcAll(){
+    [...tableBody.rows].forEach(r => calculateRow(r));
+    updateSummary();
+  }
+
+  function updateWeeklySummary(){
+    const weeks = {};
+    [...tableBody.rows].forEach(row=>{
+      const d = parseHeDate(row.children[1].textContent);
+      if(isNaN(d)) return;
+      const week = Math.ceil(d.getDate()/7);
+      const n1 = parseTimeStringToHours(row.querySelector(".total1").textContent) || 0;
+      const n2 = parseTimeStringToHours(row.querySelector(".total2").textContent) || 0;
+      if(!weeks[week]) weeks[week] = { phil:0, matan:0 };
+      weeks[week].phil += n1;
+      weeks[week].matan += n2;
+    });
+    const el = document.getElementById("weeklySummary");
+    el.innerHTML = "";
+    Object.keys(weeks).sort((a,b)=>a-b).forEach(w=>{
+      const p = weeks[w];
+      const div = document.createElement("div");
+      div.textContent = `שבוע ${w}: פיל ${p.phil.toFixed(2)} שעות | מתן ${p.matan.toFixed(2)} שעות`;
+      el.appendChild(div);
+    });
+  }
+
+  function updateMonthlyStats(){
+    let totalPhil=0, totalMatan=0, workDays=0, emptyDays=0;
+    [...tableBody.rows].forEach(row=>{
+      const n1 = parseTimeStringToHours(row.querySelector(".total1").textContent) || 0;
+      const n2 = parseTimeStringToHours(row.querySelector(".total2").textContent) || 0;
+      const hasAny = (n1 > 0) || (n2 > 0);
+      if(hasAny) workDays++; else emptyDays++;
+      totalPhil += n1;
+      totalMatan += n2;
+    });
+    const el = document.getElementById("monthlyStats");
+    el.innerHTML = `
+      <div>סה״כ שעות — פיל: <strong>${totalPhil.toFixed(2)}</strong></div>
+      <div>סה״כ שעות — מתן: <strong>${totalMatan.toFixed(2)}</strong></div>
+      <div>ימי עבודה עם נתונים: <strong>${workDays}</strong></div>
+      <div>ימים ללא נתונים: <strong>${emptyDays}</strong></div>
+    `;
+  }
+
+  function updateSummary(){
+    updateWeeklySummary();
+    updateMonthlyStats();
+  }
+
+  function fillMonthAuto(){
+    [...tableBody.rows].forEach(row=>{
+      const dayName = row.children[2].textContent.trim();
+      let inTime="", outTime="";
+      if(dayName === "יום ראשון"){ inTime="12:45"; outTime="16:30"; }
+      else if(["יום שני","יום שלישי","יום רביעי","יום חמישי"].includes(dayName)){ inTime="13:30"; outTime="16:30"; }
+      else return;
+      // מתן בלבד — in2/out2
+      row.querySelector(".in2").value = inTime;
+      row.querySelector(".out2").value = outTime;
+      calculateRow(row);
+    });
+    updateSummary();
+    alert("מילוי חודש אוטומטי הושלם (חלים על מתן בלבד).");
+  }
+
+  function saveData(){
+    const data = [...tableBody.rows].map(row=>({
+      name: row.children[0].textContent || "",
+      date: row.children[1].textContent || "",
+      day: row.children[2].textContent || "",
+      in1: row.querySelector(".in1").value || "",
+      out1: row.querySelector(".out1").value || "",
+      total1: row.querySelector(".total1").textContent || "",
+      in2: row.querySelector(".in2").value || "",
+      out2: row.querySelector(".out2").value || "",
+      total2: row.querySelector(".total2").textContent || "",
+      status: row.querySelector(".status").textContent || "",
+      meta: row.querySelector(".meta-event") ? row.querySelector(".meta-event").textContent : ""
+    }));
+    localStorage.setItem(storageKey(), JSON.stringify(data));
+    alert("הנתונים נשמרו בהצלחה לחודש/שנה אלה.");
+  }
+
+  function loadData(){
+    const raw = localStorage.getItem(storageKey());
+    if(!raw){ alert("אין נתונים שמורים לחודש/שנה הנוכחיים."); return; }
+    const data = JSON.parse(raw);
+    tableBody.innerHTML = "";
+    data.forEach(item=>{
+      const tr = document.createElement("tr");
+      const d = parseHeDate(item.date);
+      if(isWeekend(d)) tr.classList.add("weekend");
+      tr.innerHTML = `
+        <td>${item.name || ""}</td>
+        <td>${item.date || ""}</td>
+        <td>${item.day || ""}</td>
+        <td><input type="time" class="in1" value="${item.in1 || ""}" /></td>
+        <td><input type="time" class="out1" value="${item.out1 || ""}" /></td>
+        <td><span class="total1">${item.total1 || ""}</span></td>
+        <td><input type="time" class="in2" value="${item.in2 || ""}" /></td>
+        <td><input type="time" class="out2" value="${item.out2 || ""}" /></td>
+        <td><span class="total2">${item.total2 || ""}</span></td>
+        <td><span class="status">${item.status || ""}</span></td>
+        <td><span class="meta-event">${item.meta || ""}</span></td>
+      `;
+      tableBody.appendChild(tr);
+    });
+    attachListeners();
+    recalcAll();
+    alert("הנתונים נטענו בהצלחה.");
+  }
+
+  function clearData(){
+    localStorage.removeItem(storageKey());
+    generateTable();
+    alert("הנתונים לחודש/שנה הנוכחיים נמחקו.");
+  }
+
+  function exportToExcel(){
+    if(typeof XLSX === "undefined"){ alert("XLSX לא נטען — ודא קובץ מקומי או חיבור רשת"); return; }
+    const table = document.createElement("table");
+    table.appendChild(document.querySelector("#hoursTable thead").cloneNode(true));
+    const tbody = document.createElement("tbody");
+    [...tableBody.rows].forEach(r=>{
+      const tr = document.createElement("tr");
+      const cells = [
+        r.children[0].textContent,
+        r.children[1].textContent,
+        r.children[2].textContent,
+        r.querySelector(".in1").value || "",
+        r.querySelector(".out1").value || "",
+        r.querySelector(".total1").textContent || "",
+        r.querySelector(".in2").value || "",
+        r.querySelector(".out2").value || "",
+        r.querySelector(".total2").textContent || "",
+        r.querySelector(".status").textContent || "",
+        r.querySelector(".meta-event") ? r.querySelector(".meta-event").textContent : ""
+      ];
+      cells.forEach(c=>{ const td=document.createElement("td"); td.textContent=c; tr.appendChild(td); });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    const ws = XLSX.utils.table_to_sheet(table);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "שעות חודשיות");
+    XLSX.writeFile(wb, `שעות_חודשיות_${yearSelect.value}_${parseInt(monthSelect.value)+1}.xlsx`);
+  }
+
+  async function exportToPDF(){
+    if(!window.jspdf || !window.jspdf.jsPDF){ alert("jsPDF לא נטען — ודא CDN או קובץ מקומי"); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:"landscape", unit:"pt", format:"a4" });
+    doc.setFontSize(12);
+    doc.text(`שעות חודשיות — פיל ומתן (${months[parseInt(monthSelect.value)]} ${yearSelect.value})`, 40, 40);
+    if(!doc.autoTable){ alert("autoTable לא נטען — ודא קובץ plugin או CDN"); return; }
+    doc.autoTable({ html: "#hoursTable", startY: 60, styles: { halign: "right" }, headStyles: { fillColor: [243,244,246] } });
+    doc.save(`שעות_חודשיות_${yearSelect.value}_${parseInt(monthSelect.value)+1}.pdf`);
+  }
+
+  // ארועים וכפתורים
+  btnGenerate.addEventListener("click", generateTable);
+  btnFillMonth.addEventListener("click", fillMonthAuto);
+  btnExportXLSX.addEventListener("click", exportToExcel);
+  btnExportPDF.addEventListener("click", exportToPDF);
+  btnImportXLSX.addEventListener("click", ()=> excelFile.click());
+  btnSave.addEventListener("click", saveData);
+  btnLoad.addEventListener("click", loadData);
+  btnClear.addEventListener("click", clearData);
+
+  window.addEventListener("load", ()=>{
+    monthSelect.value = (new Date()).getMonth();
+    yearSelect.value = (new Date()).getFullYear();
+    generateTable();
+    setTimeout(()=>{ console.log("מוכן — ניתן לייבא קובץ או למלא חודש"); }, 300);
+  });
+
+  </script>
+</body>
+</html>
